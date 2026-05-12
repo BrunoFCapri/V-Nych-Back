@@ -47,9 +47,16 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
   @media (max-width: 1024px) {
     font-size: 16px;
   }
+}
+
+:root::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -59,9 +66,9 @@
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
+  width: min(1126px, calc(100% - 2rem));
   margin: 0 auto;
+  padding-inline: clamp(0.75rem, 2vw, 1.5rem);
   text-align: center;
   min-height: 100svh;
   display: flex;
@@ -69,7 +76,6 @@
   box-sizing: border-box;
   position: relative;
   z-index: 1;
-  zoom: 0.75;
 }
 
 body {
@@ -78,6 +84,12 @@ body {
   isolation: isolate;
   background-color: var(--bg-color);
   color: var(--text-primary);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
 }
 
 body::before {

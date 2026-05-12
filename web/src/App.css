@@ -151,7 +151,7 @@ h1 {
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .actions {
@@ -189,17 +189,17 @@ h1 {
 }
 
 .quick-actions-card {
-  max-width: 645px; /* Match .container width */
+  max-width: 645px;
   width: 100%;
-  margin: 0.9rem auto 0 auto; /* Center  like workspace */
+  margin: 0.5rem auto 0 auto;
   align-self: center;
   display: flex; /* Use flex for better vertical centering */
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.64rem; /* Keep current vertical spacing */
+  gap: 0.35rem;
   text-align: center;
-  padding: 1.1rem 0.95rem 1.1rem; /* Keep current Y height */
+  padding: 0.8rem 0.85rem;
   border-radius: 16px; /* Keep current border radius */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0)),
@@ -218,42 +218,29 @@ h1 {
 .quick-actions-card .actions {
   margin-inline: auto;
   justify-content: center; /* Center content horizontally */
-  grid-template-columns: repeat(4, minmax(170px, 1fr));
-  max-width: 980px;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  max-width: 960px;
   width: 100%;
-  margin-top: -0.7rem;
-  /* Removed margin-right to eliminate extra right space */
-}
-
-@media (max-width: 980px) {
-  .quick-actions-card .actions {
-    grid-template-columns: repeat(2, minmax(170px, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .quick-actions-card .actions {
-    grid-template-columns: 1fr;
-  }
+  margin-top: -0.25rem;
 }
 
 .card {
   background-color: var(--card-bg);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 0.85rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .fluid-mini {
-  max-width: 742px; /* 75% of 990px */
+  max-width: 640px;
   width: 100%;
-  margin: 0.68rem auto 0 auto; /* 75% of 0.9rem */
+  margin: 0 auto;
   align-self: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.48rem; /* 75% of 0.64rem */
-  padding: 0.83rem 0.71rem 0.83rem; /* 75% of 1.1rem 0.95rem 1.1rem */
+  gap: 0.18rem;
+  padding: 0.5rem 0.5rem;
   border-radius: 12px; /* 75% of 16px */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
@@ -313,18 +300,19 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.18rem;
+  gap: 0.12rem;
   width: 100%;
   margin-inline: auto;
 }
 
 .fluid-mini__scene {
   position: relative;
-  min-height: 380px;
-  aspect-ratio: 16 / 9;
+  min-height: 150px;
+  aspect-ratio: 16 / 5.8;
   width: 100%;
   margin-inline: auto;
-  border-radius: 16px;
+  border-radius: 10px;
+  transform: translateY(-22px);
   /* overflow: hidden; */
   background:
     radial-gradient(circle at top, rgba(173, 255, 35, 0.16), transparent 55%),
@@ -343,10 +331,10 @@ h1 {
 }
 
 .fluid-mini__beetle-overlay .beetle-logo {
-  width: min(560px, 94%);
-  height: 210px;
+  width: min(390px, 94%);
+  height: 96px;
   margin: 0;
-  transform: translateY(-24px) scale(0.88);
+  transform: translateY(-34px) scale(0.58);
   transform-origin: center center;
   opacity: 0.98;
   filter: drop-shadow(0 20px 28px rgba(0, 0, 0, 0.4));
@@ -355,7 +343,7 @@ h1 {
 .fluid-mini__scene .cluster-cube-scene__canvas {
   position: absolute;
   inset: 0;
-  transform: translate3d(12%, 0, 0);
+  transform: translate3d(-5%, -24px, 0);
   transform-origin: center center;
 }
 
@@ -384,7 +372,7 @@ h1 {
 .cluster-cube-scene__canvas {
   width: 100%;
   height: 100%;
-  min-height: 220px;
+  min-height: 115px;
   touch-action: none;
 }
 
@@ -396,7 +384,7 @@ h1 {
 .server-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0.75rem;
+  gap: 0.45rem;
 }
 
 .server-item {
@@ -404,7 +392,7 @@ h1 {
   align-items: center;
   gap: 0.64rem; /* 75% of 0.85rem */
   border-radius: 10.5px; /* 75% of 14px */
-  padding: 0.71rem 0.75rem; /* 75% of 0.95rem 1rem */
+  padding: 0.5rem 0.56rem; /* compacted */
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -676,30 +664,35 @@ h1 {
 }
 
 @media (max-width: 640px) {
+  .dashboard {
+    gap: 0.75rem;
+  }
+
   .container {
-    padding: 1.25rem;
+    width: min(100%, calc(100vw - 1rem));
+    padding: 0.65rem;
   }
 
   .server-overview__scene,
   .server-cube-scene {
-    min-height: 280px;
+    min-height: 190px;
   }
 
   .fluid-mini__scene,
   .fluid-cube-mini__canvas {
-    min-height: 280px;
+    min-height: 190px;
     aspect-ratio: 16 / 10;
   }
 
   .cluster-cube-scene__canvas {
-    min-height: 280px;
-    transform: translate3d(8%, 0, 0);
+    min-height: 190px;
+    transform: translate3d(-6%, -20px, 0);
   }
 
   .fluid-mini__beetle-overlay .beetle-logo {
-    height: 170px;
-    width: min(460px, 98%);
-    transform: translateY(-10px) scale(0.72);
+    height: 120px;
+    width: min(400px, 98%);
+    transform: translateY(-28px) scale(0.66);
   }
 
   .beetle-logo {

@@ -1017,7 +1017,6 @@ function Dashboard() {
         <section className="card fluid-mini">
           <div className="fluid-mini__header">
             <p className="eyebrow">Servidores</p>
-            <h2>Triangulo conectado</h2>
           </div>
           <div className="fluid-mini__scene">
             <ServiceClusterScene services={services} />
