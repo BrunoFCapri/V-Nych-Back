@@ -1,3 +1,5 @@
+import Modal from 'react-modal';
+Modal.setAppElement('#root');
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom';

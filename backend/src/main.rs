@@ -1,10 +1,12 @@
 mod tasks;
+mod admin;
 mod users;
 mod notes;
 mod calendar;
+mod public_link;
 
 use axum::{
-    extract::{State},
+    extract::State,
     routing::{get, post, patch},
     Json, Router,
 };
@@ -35,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Database connection string
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/chaja_mesh".to_string());
+        .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/v_nych".to_string());
 
     // Redis connection string
     let redis_url = std::env::var("REDIS_URL")
@@ -81,11 +83,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/health", get(health_check))
         .route("/api/status", get(get_status))
+        // Public calendar link
+        .route("/api/public/calendar", get(public_link::public_availability))
         // Tasks
         .route("/api/tasks", get(tasks::list_tasks).post(tasks::create_task))
         .route("/api/tasks/:id", patch(tasks::update_task).delete(tasks::delete_task))
         // Task Attachments
         .route("/api/tasks/:id/attachments", post(tasks::upload_task_attachment).get(tasks::list_task_attachments))
+        .route("/api/attachments", get(tasks::list_user_attachments))
         .route("/api/tasks/:id/attachments/:attachment_id", get(tasks::download_task_attachment).delete(tasks::delete_task_attachment))
         // Lists
         .route("/api/lists", get(tasks::get_lists).post(tasks::create_list))
@@ -96,6 +101,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/calendar/events/:id", get(calendar::get_event).patch(calendar::update_event).delete(calendar::delete_event))
         .route("/api/auth/register", post(users::register))
         .route("/api/auth/login", post(users::login))
+        .route("/api/admin/overview", get(admin::overview))
+        .route("/api/admin/user/:user_id", get(admin::user_detail))
         .layer(cors)
         .with_state(state);
 

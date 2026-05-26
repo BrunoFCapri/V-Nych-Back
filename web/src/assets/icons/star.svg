@@ -1,0 +1,11 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 612 792" width="612" height="792">
+	<style>
+		tspan { white-space:pre }
+		.s0 { fill: #161a1d }
+		.s1 { fill: #adff23;stroke: #000000;stroke-miterlimit:10 }
+	</style>
+	<path id="Forma 2" fill-rule="evenodd" class="s0" d="m619.87 0v792h-619.87v-792z"/>
+	<g id="estrella">
+		<path class="s1" d="m607.54 385c-166.83 0-302.08 135.25-302.08 302 0-166.75-135.17-302-302-302 166.83 0 302-135.25 302-302 0 166.75 135.25 302 302.08 302z"/>
+	</g>
+</svg>

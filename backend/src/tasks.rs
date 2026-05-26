@@ -1,3 +1,24 @@
+// Endpoint para listar todos los archivos adjuntos del usuario (sin mover archivos físicamente)
+
+pub async fn list_user_attachments(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<Json<Vec<TaskAttachment>>, (StatusCode, String)> {
+    let attachments = sqlx::query_as::<_, TaskAttachment>(
+        r#"
+        SELECT ta.id, ta.task_id, ta.filename, ta.mime_type, ta.uploaded_at
+        FROM task_attachments ta
+        JOIN tasks t ON t.id = ta.task_id
+        WHERE t.user_id = $1
+        ORDER BY ta.uploaded_at DESC
+        "#
+    )
+    .bind(claims.user_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(Json(attachments))
+}
 // Handler para eliminar un adjunto de una tarea
 pub async fn delete_task_attachment(
     State(state): State<AppState>,
@@ -268,7 +289,7 @@ pub async fn create_list(
         "#
     )
     .bind(claims.user_id)
-    .bind(payload.title)
+    .bind(payload.title.clone())
     .bind(payload.color)
     .bind(payload.icon)
     .fetch_one(&state.db)
@@ -296,7 +317,7 @@ pub async fn update_list(
         "#
     )
     .bind(id)
-    .bind(payload.title)
+    .bind(payload.title.clone())
     .bind(payload.color)
     .bind(payload.icon)
     .bind(claims.user_id)
@@ -374,7 +395,15 @@ pub async fn create_task(
     claims: Claims,
     Json(payload): Json<CreateTaskRequest>,
 ) -> Result<Json<Task>, (StatusCode, String)> {
-    let task = sqlx::query_as::<_, Task>(
+    println!("[CREATE_TASK] user_id: {:?}, payload: {:?}", claims.user_id, payload);
+    let title = payload.title.clone();
+    let description = payload.description.clone();
+    let priority = payload.priority.clone();
+    let due_date = payload.due_date.clone();
+    let list_id = payload.list_id.clone();
+    let parent_id = payload.parent_id.clone();
+    let related_note_id = payload.related_note_id.clone();
+    let result = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (user_id, title, description, priority, due_date, list_id, parent_id, related_note_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -382,18 +411,23 @@ pub async fn create_task(
         "#
     )
     .bind(claims.user_id)
-    .bind(payload.title)
-    .bind(payload.description)
-    .bind(payload.priority.unwrap_or_else(|| "medium".to_string()))
-    .bind(payload.due_date)
-    .bind(payload.list_id)
-    .bind(payload.parent_id)
-    .bind(payload.related_note_id)
+    .bind(title)
+    .bind(description)
+    .bind(priority.unwrap_or_else(|| "medium".to_string()))
+    .bind(due_date)
+    .bind(list_id)
+    .bind(parent_id)
+    .bind(related_note_id)
     .fetch_one(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await;
 
-    Ok(Json(task))
+    match result {
+        Ok(task) => Ok(Json(task)),
+        Err(e) => {
+            println!("[CREATE_TASK ERROR] user_id: {:?}, payload: {:?}, error: {}", claims.user_id, payload, e);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+        }
+    }
 }
 
 pub async fn update_task(
@@ -427,16 +461,16 @@ pub async fn update_task(
         "#
     )
     .bind(id)
-    .bind(payload.title)
-    .bind(payload.description)
+    .bind(payload.title.clone())
+    .bind(payload.description.clone())
     .bind(payload.status)
     .bind(payload.priority)
-    .bind(payload.due_date)
+    .bind(payload.due_date.clone())
     .bind(payload.is_starred)
-    .bind(payload.list_id)
-    .bind(payload.parent_id)
+    .bind(payload.list_id.clone())
+    .bind(payload.parent_id.clone())
     .bind(payload.position)
-    .bind(payload.related_note_id)
+    .bind(payload.related_note_id.clone())
     .bind(claims.user_id)
     .fetch_one(&state.db)
     .await

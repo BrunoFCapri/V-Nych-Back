@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { API_URL } from '../config';
+import { useAPI } from '../utils/useAPI';
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -10,26 +10,29 @@ export default function Register() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { fetchAPI } = useAPI();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+      const res = await fetchAPI(`/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
+        skipAuth: true,
       });
 
       if (!res.ok) {
         let errorMessage = 'Error en el registro';
-        try {
-            // Intenta parsear como JSON si el servidor devuelve JSON
-            const errorJson = await res.json();
-            errorMessage = errorJson.message || JSON.stringify(errorJson);
-        } catch {
-            // Si no es JSON, usa el texto plano
-            const errorText = await res.text();
-            if (errorText) errorMessage = errorText;
+        const errorBody = await res.text();
+
+        if (errorBody) {
+          try {
+            const errorJson = JSON.parse(errorBody) as { message?: string };
+            errorMessage = errorJson.message || errorBody;
+          } catch {
+            errorMessage = errorBody;
+          }
         }
         throw new Error(errorMessage);
       }

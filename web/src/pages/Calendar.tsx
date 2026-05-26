@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../config';
+import { useAPI } from '../utils/useAPI';
+import { arrowIcon, calendarIcon } from '../assets/icons';
 
 interface CalendarEvent {
   id: string;
@@ -18,20 +19,27 @@ interface CalendarEvent {
 
 type ViewMode = 'day' | 'week' | 'month';
 
+const CURRENT_TIME_LINE_COLOR = '#adff23';
+
 export default function Calendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const { token } = useAuth();
+  const { fetchAPI } = useAPI();
   const navigate = useNavigate();
 
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
+    const [now, setNow] = useState(new Date());
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState("");
-  const [newEventColor, setNewEventColor] = useState("#3b82f6");
+  const [newEventColor, setNewEventColor] = useState("var(--accent)");
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+    const [hoveredModalButton, setHoveredModalButton] = useState<'delete' | 'cancel' | 'save' | null>(null);
+    const [hoveredColorSwatch, setHoveredColorSwatch] = useState<string | null>(null);
+        const [activeInputField, setActiveInputField] = useState<'title' | 'start' | 'end' | null>(null);
 
   // Default new event times
   const getDefaultEventTimes = () => {
@@ -60,7 +68,7 @@ export default function Calendar() {
       setNewEventStart(toLocalISOString(start));
       setNewEventEnd(toLocalISOString(end));
       setNewEventTitle("");
-      setNewEventColor("#3b82f6");
+      setNewEventColor("var(--accent)");
       setModalMode('create');
       setIsModalOpen(true);
   };
@@ -69,7 +77,7 @@ export default function Calendar() {
       setNewEventTitle(event.title);
       setNewEventStart(toLocalISOString(new Date(event.start_time)));
       setNewEventEnd(toLocalISOString(new Date(event.end_time)));
-      setNewEventColor(event.color || "#3b82f6");
+      setNewEventColor(event.color || "var(--accent)");
       setSelectedEventId(event.id);
       setModalMode('edit');
       setIsModalOpen(true);
@@ -156,13 +164,11 @@ export default function Calendar() {
         end_date: end.toISOString()
     });
 
-    fetch(`${API_URL}/api/calendar/events?${query}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(data => setEvents(data))
-    .catch(err => console.error(err));
-  }, [token, currentDate, viewMode]);
+    fetchAPI(`/api/calendar/events?${query}`)
+        .then(res => res.json())
+        .then(data => setEvents(data))
+        .catch(err => console.error(err));
+    }, [token, currentDate, viewMode, fetchAPI]);
 
 
   // --- Event Creation / Update ---
@@ -182,19 +188,18 @@ export default function Calendar() {
       };
 
       try {
-          let url = `${API_URL}/api/calendar/events`;
+          let endpoint = `/api/calendar/events`;
           let method = 'POST';
 
           if (modalMode === 'edit' && selectedEventId) {
-              url = `${API_URL}/api/calendar/events/${selectedEventId}`;
+              endpoint = `/api/calendar/events/${selectedEventId}`;
               method = 'PATCH';
           }
 
-          const res = await fetch(url, {
+          const res = await fetchAPI(endpoint, {
               method: method,
               headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`
+                  'Content-Type': 'application/json'
               },
               body: JSON.stringify(payload)
           });
@@ -212,6 +217,31 @@ export default function Calendar() {
           } else {
               const errorText = await res.text();
               alert(`Failed to save event: ${errorText}`);
+          }
+      } catch (err) {
+          console.error(err);
+      }
+  };
+
+  const handleDeleteEvent = async () => {
+      if (!token || !selectedEventId) return;
+
+      const shouldDelete = window.confirm('Are you sure you want to delete this event?');
+      if (!shouldDelete) return;
+
+      try {
+          const res = await fetchAPI(`/api/calendar/events/${selectedEventId}`, {
+              method: 'DELETE'
+          });
+
+          if (res.ok) {
+              setEvents(events.filter(ev => ev.id !== selectedEventId));
+              setIsModalOpen(false);
+              setNewEventTitle('');
+              setSelectedEventId(null);
+          } else {
+              const errorText = await res.text();
+              alert(`Failed to delete event: ${errorText}`);
           }
       } catch (err) {
           console.error(err);
@@ -242,6 +272,24 @@ export default function Calendar() {
              d1.getDate() === d2.getDate();
   };
 
+  const getDayBounds = (date: Date) => {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      return { start, end };
+  };
+
+  useEffect(() => {
+      const intervalId = window.setInterval(() => {
+          setNow(new Date());
+      }, 60000);
+
+      return () => {
+          window.clearInterval(intervalId);
+      };
+  }, []);
+
   // Render Logic
   const renderWeekView = () => {
       const startOfWeek = getStartOfWeek(currentDate);
@@ -253,12 +301,15 @@ export default function Calendar() {
           return d;
       });
 
+      const currentTimeTop = (now.getHours() + now.getMinutes() / 60) * 60;
+      const todayColumnIndex = viewDays.findIndex((day) => isSameDate(day, now));
+
       return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
             {/* Header / Week Days */}
-            <div style={{ display: 'flex', paddingLeft: '60px', borderBottom: '1px solid #1e293b' }}>
+            <div style={{ display: 'flex', paddingLeft: '60px', borderBottom: '1px solid var(--card-bg)' }}>
                 {viewDays.map((day, i) => (
-                    <div key={i} style={{ flex: 1, textAlign: 'center', padding: '10px 0', borderLeft: '1px solid #1e293b', fontWeight: isSameDate(day, new Date()) ? 'bold' : 'normal', color: isSameDate(day, new Date()) ? '#3b82f6' : '#94a3b8' }}>
+                    <div key={i} style={{ flex: 1, textAlign: 'center', padding: '10px 0', borderLeft: '1px solid var(--card-bg)', fontWeight: isSameDate(day, new Date()) ? 'bold' : 'normal', color: isSameDate(day, new Date()) ? 'var(--accent)' : 'var(--text-secondary)' }}>
                         <div>{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                         <div style={{ fontSize: '1.2rem' }}>{day.getDate()}</div>
                     </div>
@@ -270,27 +321,27 @@ export default function Calendar() {
                 {/* Time Gutter */}
                 <div style={{ width: '60px', flexShrink: 0 }}>
                     {Array.from({ length: 24 }).map((_, i) => (
-                        <div key={i} style={{ height: '60px', borderBottom: '1px solid #1e293b', textAlign: 'right', paddingRight: '10px', fontSize: '0.8rem', color: '#64748b' }}>
+                        <div key={i} style={{ height: '60px', borderBottom: '1px solid var(--card-bg)', textAlign: 'right', paddingRight: '10px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                             {i}:00
                         </div>
                     ))}
                 </div>
 
                 {/* Columns & Events */}
-                <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
+                <div style={{ flex: 1, position: 'relative', display: 'flex', height: '1440px' }}>
                     {/* Background Grid Lines (Horizontal) */}
                     {Array.from({ length: 24 }).map((_, i) => (
-                        <div key={i} style={{ position: 'absolute', top: `${i * 60}px`, left: 0, right: 0, height: '60px', borderBottom: '1px solid #1e293b', pointerEvents: 'none' }}></div>
+                        <div key={i} style={{ position: 'absolute', top: `${i * 60}px`, left: 0, right: 0, height: '60px', borderBottom: '1px solid var(--card-bg)', pointerEvents: 'none' }}></div>
                     ))}
                     
                     {/* Column Borders (Vertical) */}
                     {viewDays.map((_, i) => (
-                        <div key={i} style={{ flex: 1, borderLeft: '1px solid #1e293b', height: '1440px', pointerEvents: 'none' }}></div>
+                        <div key={i} style={{ flex: 1, borderLeft: '1px solid var(--card-bg)', height: '1440px', pointerEvents: 'none' }}></div>
                     ))}
 
                     {/* Interaction Layer */}
                     <div 
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5, cursor: 'crosshair' }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1440px', zIndex: 5, cursor: 'crosshair' }}
                         // Calculate Time logic needs to use offsetY from event if relative, but getBoundingClientRect is safer due to scrolling
                         onClick={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
@@ -326,67 +377,87 @@ export default function Calendar() {
                     ></div>
 
                     {/* Events */}
-                    {events.map(event => {
+                    {events.flatMap(event => {
                          const start = new Date(event.start_time);
                          const end = new Date(event.end_time);
-                         
-                         // Determine column index
-                         let colIndex = -1;
-                         if (viewMode === 'day') {
-                             if (isSameDate(start, currentDate)) colIndex = 0;
-                         } else {
-                            // Week view logic
-                            const diffTime = start.getTime() - startOfWeek.getTime();
-                            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                            if (diffDays >= 0 && diffDays < 7) colIndex = diffDays;
-                         }
-
-                         if (colIndex === -1) return null;
-
-                         const startHours = start.getHours() + start.getMinutes() / 60;
-                         const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-                        
-                         // Calculate width and left position
                          const widthPercent = 100 / daysToShow;
-                         const leftPercent = colIndex * widthPercent;
 
-                         return (
-                             <div 
-                                key={event.id}
-                                title={event.title}
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    openModalEdit(event);
-                                }}
+                         return viewDays.map((day, colIndex) => {
+                             const { start: dayStart, end: dayEnd } = getDayBounds(day);
+                             const segmentStart = start > dayStart ? start : dayStart;
+                             const segmentEnd = end < dayEnd ? end : dayEnd;
+
+                             if (segmentStart >= segmentEnd) return null;
+
+                             const startHours = segmentStart.getHours() + segmentStart.getMinutes() / 60;
+                             const durationHours = (segmentEnd.getTime() - segmentStart.getTime()) / (1000 * 60 * 60);
+                             const leftPercent = colIndex * widthPercent;
+
+                             return (
+                                 <div 
+                                    key={`${event.id}-${day.toISOString()}`}
+                                    title={event.title}
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        openModalEdit(event);
+                                    }}
+                                    style={{
+                                        position: 'absolute',
+                                        top: `${startHours * 60}px`,
+                                        height: `${Math.max(durationHours * 60, 25)}px`,
+                                        left: `${leftPercent}%`,
+                                        width: `${widthPercent}%`,
+                                        padding: '2px',
+                                        zIndex: 10
+                                    }}
+                                 >
+                                     <div style={{
+                                         backgroundColor: event.color || 'var(--accent)',
+                                         borderLeft: '3px solid rgba(0,0,0,0.2)',
+                                         height: '100%',
+                                         borderRadius: '4px',
+                                         padding: '4px',
+                                         fontSize: '0.75rem',
+                                         overflow: 'hidden',
+                                         cursor: 'pointer',
+                                         color: 'white'
+                                     }}>
+                                        <strong>{event.title}</strong>
+                                        <div>{segmentStart.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                     </div>
+                                 </div>
+                             );
+                         });
+                    })}
+
+                    {/* Current time indicator */}
+                    {todayColumnIndex !== -1 && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                top: `${currentTimeTop}px`,
+                                left: `${todayColumnIndex * (100 / daysToShow)}%`,
+                                width: `${100 / daysToShow}%`,
+                                height: '0',
+                                borderTop: `2px solid ${CURRENT_TIME_LINE_COLOR}`,
+                                zIndex: 25,
+                                pointerEvents: 'none'
+                            }}
+                        >
+                            <div
                                 style={{
                                     position: 'absolute',
-                                    top: `${startHours * 60}px`, // 60px per hour
-                                    height: `${Math.max(durationHours * 60, 25)}px`,
-                                    left: `${leftPercent}%`,
-                                    width: `${widthPercent}%`,
-                                    padding: '2px',
-                                    zIndex: 10
+                                    left: '-4px',
+                                    top: '-5px',
+                                    width: '10px',
+                                    height: '10px',
+                                    borderRadius: '50%',
+                                    backgroundColor: CURRENT_TIME_LINE_COLOR,
+                                    boxShadow: `0 0 8px ${CURRENT_TIME_LINE_COLOR}`
                                 }}
-                             >
-                                 <div style={{
-                                     backgroundColor: event.color || '#3b82f6',
-                                     borderLeft: '3px solid rgba(0,0,0,0.2)',
-                                     height: '100%',
-                                     borderRadius: '4px',
-                                     padding: '4px',
-                                     fontSize: '0.75rem',
-                                     overflow: 'hidden',
-                                     cursor: 'pointer',
-                                     color: 'white'
-                                 }}>
-                                    <strong>{event.title}</strong>
-                                    <div>{start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                                 </div>
-                             </div>
-                         );
-                    })}
-                    
-                    {/* Current Time Indicator logic could be added here */}
+                            ></div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -400,7 +471,7 @@ export default function Calendar() {
     return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #334155', backgroundColor: '#1e293b' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--card-bg)' }}>
                 {weekDays.map(d => (
                     <div key={d} style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{d}</div>
                 ))}
@@ -409,7 +480,12 @@ export default function Calendar() {
             {/* Grid */}
             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(100px, 1fr)', overflowY: 'auto' }}>
                 {days.map((dayObj, i) => {
-                    const dayEvents = events.filter(e => isSameDate(new Date(e.start_time), dayObj.date));
+                    const { start: dayStart, end: dayEnd } = getDayBounds(dayObj.date);
+                    const dayEvents = events.filter(e => {
+                        const eventStart = new Date(e.start_time);
+                        const eventEnd = new Date(e.end_time);
+                        return eventStart < dayEnd && eventEnd > dayStart;
+                    });
                     
                     return (
                         <div key={i} 
@@ -421,18 +497,18 @@ export default function Calendar() {
                                 openModalWithTimes(start, end);
                             }}
                             style={{ 
-                            borderRight: '1px solid #334155', 
-                            borderBottom: '1px solid #334155', 
+                            borderRight: '1px solid var(--border)', 
+                            borderBottom: '1px solid var(--border)', 
                             padding: '5px',
-                            backgroundColor: dayObj.isCurrentMonth ? 'transparent' : 'rgba(255,255,255,0.03)',
+                            backgroundColor: dayObj.isCurrentMonth ? 'transparent' : 'var(--accent-weak)',
                             overflow: 'hidden',
                             minHeight: '100px'
                         }}>
                             <div style={{ 
                                 marginBottom: '5px', 
-                                color: isSameDate(dayObj.date, new Date()) ? '#3b82f6' : 'inherit', 
+                                color: isSameDate(dayObj.date, new Date()) ? 'var(--accent)' : 'inherit', 
                                 fontWeight: isSameDate(dayObj.date, new Date()) ? 'bold' : 'normal',
-                                backgroundColor: isSameDate(dayObj.date, new Date()) ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                backgroundColor: isSameDate(dayObj.date, new Date()) ? 'var(--accent-weak)' : 'transparent',
                                 borderRadius: '50%',
                                 display: 'inline-block',
                                 width: '24px',
@@ -452,7 +528,7 @@ export default function Calendar() {
                                             openModalEdit(ev);
                                         }}
                                         style={{ 
-                                            backgroundColor: ev.color || '#3b82f6', 
+                                            backgroundColor: ev.color || 'var(--accent)', 
                                             borderRadius: '3px', 
                                             padding: '2px 4px', 
                                             fontSize: '0.75rem', 
@@ -476,10 +552,74 @@ export default function Calendar() {
     );
   };
 
+  const getModalButtonStyle = (variant: 'delete' | 'cancel' | 'save') => {
+      const isHovered = hoveredModalButton === variant;
+
+      if (variant === 'delete') {
+          return {
+              padding: '10px 20px',
+              background: '#590902',
+              border: 'none',
+              color: 'white',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              transform: isHovered ? 'translateY(-2px) scale(1.01)' : 'translateY(0) scale(1)',
+              boxShadow: isHovered ? '0 8px 18px rgba(89, 9, 2, 0.45)' : 'none',
+              transition: 'transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease',
+              filter: isHovered ? 'brightness(1.1)' : 'brightness(1)'
+          };
+      }
+
+      if (variant === 'cancel') {
+          return {
+              padding: '10px 20px',
+              background: isHovered ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+              border: '1px solid var(--border)',
+              color: 'var(--text-secondary)',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+              boxShadow: isHovered ? '0 6px 14px rgba(0, 0, 0, 0.22)' : 'none',
+              transition: 'transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease'
+          };
+      }
+
+      return {
+          padding: '10px 20px',
+          background: 'var(--accent)',
+          border: 'none',
+          color: 'white',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontWeight: 500,
+          transform: isHovered ? 'translateY(-2px) scale(1.01)' : 'translateY(0) scale(1)',
+          boxShadow: isHovered ? '0 8px 18px rgba(59, 130, 246, 0.4)' : 'none',
+          transition: 'transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease',
+          filter: isHovered ? 'brightness(1.08)' : 'brightness(1)'
+      };
+  };
+
+  const getModalInputStyle = (field: 'title' | 'start' | 'end') => {
+      const isActive = activeInputField === field;
+      return {
+          width: '100%',
+          padding: '10px',
+          backgroundColor: 'var(--bg-color)',
+          border: isActive ? '1px solid var(--accent)' : '1px solid var(--border)',
+          color: 'white',
+          borderRadius: '6px',
+          transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
+          boxShadow: isActive ? '0 8px 18px rgba(59, 130, 246, 0.2)' : 'none',
+          transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease'
+      };
+  };
+
   return (
-    <div className="calendar-container" style={{ height: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', color: '#e2e8f0', backgroundColor: '#0f172a' }}>
+    <div className="calendar-container" style={{ height: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)', backgroundColor: 'var(--bg-color)' }}>
       {/* Heavy Header */}
-      <header style={{ padding: '20px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{ padding: '20px', borderBottom: '1px solid var(--card-bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <button 
                 onClick={() => navigate('/')} 
@@ -487,19 +627,23 @@ export default function Calendar() {
                 style={{ 
                     padding: '8px 12px', 
                     borderRadius: '6px', 
-                    border: '1px solid #334155', 
-                    backgroundColor: '#1e293b', 
-                    color: '#e2e8f0',
+                    border: '1px solid var(--border)', 
+                    backgroundColor: 'var(--card-bg)', 
+                    color: 'var(--text-primary)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px'
                 }}
             >
-                ← Back
+                <img src={arrowIcon} alt="Back" style={{ width: '18px', height: '18px', borderRadius: '4px' }} />
+                Back
             </button>
-            <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Calendar</h1>
-            <div className="view-controls" style={{ display: 'flex', gap: '5px', backgroundColor: '#1e293b', padding: '4px', borderRadius: '6px' }}>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img src={calendarIcon} alt="Calendar" style={{ width: '26px', height: '26px', borderRadius: '6px' }} />
+                Calendar
+            </h1>
+            <div className="view-controls" style={{ display: 'flex', gap: '5px', backgroundColor: 'var(--card-bg)', padding: '4px', borderRadius: '6px' }}>
                 {(['day', 'week', 'month'] as ViewMode[]).map(mode => (
                     <button 
                         key={mode} 
@@ -509,10 +653,10 @@ export default function Calendar() {
                         }} 
                         style={{ 
                             padding: '6px 16px', 
-                            background: viewMode === mode ? '#3b82f6' : 'transparent', 
+                            background: viewMode === mode ? 'var(--accent)' : 'transparent', 
                             border: 'none', 
                             borderRadius: '4px', 
-                            color: viewMode === mode ? 'white' : '#94a3b8',
+                            color: viewMode === mode ? 'white' : 'var(--text-secondary)',
                             cursor: 'pointer',
                             textTransform: 'capitalize',
                             fontWeight: viewMode === mode ? 'bold' : 'normal',
@@ -526,15 +670,15 @@ export default function Calendar() {
         </div>
         <div className="nav-controls" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
              <button onClick={handleCreateEventClick} style={{ background: '#22c55e', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}><span>+</span> New Event</button>
-             <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#1e293b', borderRadius: '6px', overflow: 'hidden', border: '1px solid #334155' }}>
-                 <button onClick={handlePrev} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', padding: '8px 12px', cursor: 'pointer', borderRight: '1px solid #334155' }}>&lt;</button>
+             <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--card-bg)', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                 <button onClick={handlePrev} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', padding: '8px 12px', cursor: 'pointer', borderRight: '1px solid var(--border)' }}>&lt;</button>
                  <span style={{ fontWeight: '600', padding: '0 15px', minWidth: '180px', textAlign: 'center', fontSize: '0.95rem' }}>
                      {viewMode === 'month' 
                         ? currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
                         : `${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${viewMode === 'week' ? ` - ${getEndOfWeek(currentDate).getDate()}` : ''}`
                      }
                  </span>
-                 <button onClick={handleNext} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', padding: '8px 12px', cursor: 'pointer', borderLeft: '1px solid #334155' }}>&gt;</button>
+                 <button onClick={handleNext} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', padding: '8px 12px', cursor: 'pointer', borderLeft: '1px solid var(--border)' }}>&gt;</button>
              </div>
         </div>
       </header>
@@ -552,42 +696,54 @@ export default function Calendar() {
               backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
               backdropFilter: 'blur(2px)'
           }}>
-              <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', width: '400px', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '24px', borderRadius: '12px', width: '400px', border: '1px solid var(--border)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
                   <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.25rem' }}>{modalMode === 'create' ? 'Create Event' : 'Edit Event'}</h3>
                   <form onSubmit={handleSaveEvent}>
                       <div style={{ marginBottom: '15px' }}>
-                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Title</label>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Title</label>
                           <input 
                             type="text" 
                             value={newEventTitle} 
                             onChange={e => setNewEventTitle(e.target.value)} 
-                            style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', border: '1px solid #334155', color: 'white', borderRadius: '6px' }}
+                                                        onMouseEnter={() => setActiveInputField('title')}
+                                                        onMouseLeave={() => setActiveInputField(null)}
+                                                        onFocus={() => setActiveInputField('title')}
+                                                        onBlur={() => setActiveInputField(null)}
+                                                        style={getModalInputStyle('title')}
                             placeholder="Meeting with team..."
                             required
                           />
                       </div>
                       <div style={{ marginBottom: '15px' }}>
-                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Start Time</label>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Start Time</label>
                           <input 
                             type="datetime-local" 
                             value={newEventStart}
                             onChange={e => setNewEventStart(e.target.value)}
-                            style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', border: '1px solid #334155', color: 'white', borderRadius: '6px' }}
+                                                        onMouseEnter={() => setActiveInputField('start')}
+                                                        onMouseLeave={() => setActiveInputField(null)}
+                                                        onFocus={() => setActiveInputField('start')}
+                                                        onBlur={() => setActiveInputField(null)}
+                                                        style={getModalInputStyle('start')}
                             required
                           />
                       </div>
                       <div style={{ marginBottom: '25px' }}>
-                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>End Time</label>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>End Time</label>
                           <input 
                             type="datetime-local" 
                             value={newEventEnd}
                             onChange={e => setNewEventEnd(e.target.value)}
-                            style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', border: '1px solid #334155', color: 'white', borderRadius: '6px' }}
+                                                        onMouseEnter={() => setActiveInputField('end')}
+                                                        onMouseLeave={() => setActiveInputField(null)}
+                                                        onFocus={() => setActiveInputField('end')}
+                                                        onBlur={() => setActiveInputField(null)}
+                                                        style={getModalInputStyle('end')}
                             required
                           />
                       </div>
                       <div style={{ marginBottom: '25px' }}>
-                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Color</label>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Color</label>
                           <div style={{ display: 'flex', gap: '10px' }}>
                             <input 
                                 type="color" 
@@ -596,22 +752,57 @@ export default function Calendar() {
                                 style={{ width: '60px', height: '40px', padding: '0', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
                             />
                             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                                {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'].map(c => (
+                                {['var(--accent)', 'var(--error)', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'].map(c => (
                                     <div 
                                         key={c}
                                         onClick={() => setNewEventColor(c)}
+                                        onMouseEnter={() => setHoveredColorSwatch(c)}
+                                        onMouseLeave={() => setHoveredColorSwatch(null)}
                                         style={{ 
                                             width: '32px', height: '32px', borderRadius: '50%', backgroundColor: c, cursor: 'pointer',
-                                            border: newEventColor === c ? '2px solid white' : '2px solid transparent'
+                                            border: newEventColor === c ? '2px solid white' : '2px solid transparent',
+                                            transform: hoveredColorSwatch === c ? 'translateY(-2px) scale(1.07)' : 'translateY(0) scale(1)',
+                                            boxShadow: hoveredColorSwatch === c ? '0 8px 16px rgba(0, 0, 0, 0.28)' : 'none',
+                                            transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease'
                                         }}
                                     />
                                 ))}
                             </div>
                           </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                          <button type="button" onClick={() => setIsModalOpen(false)} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-                          <button type="submit" style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Save Event</button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                          <div>
+                              {modalMode === 'edit' && (
+                                  <button
+                                      type="button"
+                                      onClick={handleDeleteEvent}
+                                      onMouseEnter={() => setHoveredModalButton('delete')}
+                                      onMouseLeave={() => setHoveredModalButton(null)}
+                                      style={getModalButtonStyle('delete')}
+                                  >
+                                      Delete Event
+                                  </button>
+                              )}
+                          </div>
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                              <button
+                                  type="button"
+                                  onClick={() => setIsModalOpen(false)}
+                                  onMouseEnter={() => setHoveredModalButton('cancel')}
+                                  onMouseLeave={() => setHoveredModalButton(null)}
+                                  style={getModalButtonStyle('cancel')}
+                              >
+                                  Cancel
+                              </button>
+                              <button
+                                  type="submit"
+                                  onMouseEnter={() => setHoveredModalButton('save')}
+                                  onMouseLeave={() => setHoveredModalButton(null)}
+                                  style={getModalButtonStyle('save')}
+                              >
+                                  Save Event
+                              </button>
+                          </div>
                       </div>
                   </form>
               </div>

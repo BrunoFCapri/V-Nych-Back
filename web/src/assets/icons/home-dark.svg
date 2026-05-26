@@ -1,0 +1,15 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 612 792" width="612" height="792">
+	<style>
+		tspan { white-space:pre }
+		.s0 { fill: #161a1d }
+		.s1 { fill: #adff23 }
+		.s2 { fill: #161a1d;stroke: #000000;stroke-miterlimit:100;stroke-width: 5 }
+	</style>
+	<path id="Forma 2" fill-rule="evenodd" class="s0" d="m619.87 0v792h-619.87v-792z"/>
+	<g id="home">
+		<path class="s1" d="m607 338.37v246.34l-92.18 92.23h-118.31v-204.44l-44.18-46.23h-93.66l-38.58 40.63v210.04h-123.91l-92.18-92.18v-246.45l181.56-223.45h240.28z"/>
+	</g>
+	<g id="home oscuro">
+		<path id="Layer copy" class="s2" d="m607 338.37v246.34l-92.18 92.23h-118.31v-204.44l-44.18-46.23h-93.66l-38.58 40.63v210.04h-123.91l-92.18-92.18v-246.45l181.56-223.45h240.28z"/>
+	</g>
+</svg>

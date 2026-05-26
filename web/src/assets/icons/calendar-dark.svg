@@ -1,0 +1,22 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 612 792" width="612" height="792">
+	<style>
+		tspan { white-space:pre }
+		.s0 { fill: #161a1d }
+		.s1 { fill: #adff23;stroke: #000000;stroke-miterlimit:10 }
+		.s2 { fill: #161a1d;stroke: #000000;stroke-miterlimit:10 }
+		.s3 { fill: #adff23;stroke: #adff23;stroke-miterlimit:10 }
+		.t4 { font-size: 37px;fill: #161a1d;font-family: "Discovery" }
+	</style>
+	<path id="Forma 1" fill-rule="evenodd" class="s0" d="m727-41v953h-843v-953z"/>
+	<g id="calendario oscuro">
+		<path class="s1" d="m608.12 200.95v488.76h-490.38l-115.56-124.25v-482.3h486.23z"/>
+		<path class="s2" d="m608.12 200.95v91.17h-605.94v-208.96h486.23z"/>
+		<path class="s3" d="m199.36 24v129.94h-8.07v-129.94z"/>
+		<path class="s3" d="m418.93 24v129.94h-8.07v-129.94z"/>
+		<text id="20
+" style="transform: matrix(7.693,0,0,7.693,124.352,601.932)">
+			<tspan x="0" y="0" class="t4">20
+</tspan>
+		</text>
+	</g>
+</svg>

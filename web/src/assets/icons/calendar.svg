@@ -1,0 +1,22 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 612 792" width="612" height="792">
+	<style>
+		tspan { white-space:pre }
+		.s0 { fill: #161a1d }
+		.s1 { fill: #161a1d;stroke: #000000;stroke-miterlimit:10 }
+		.s2 { fill: #adff23;stroke: #000000;stroke-miterlimit:10 }
+		.s3 { fill: #000000;stroke: #000000;stroke-miterlimit:10 }
+		.t4 { font-size: 37px;fill: #adff23;font-family: "Discovery" }
+	</style>
+	<path id="Forma 1" fill-rule="evenodd" class="s0" d="m727-41v953h-843v-953z"/>
+	<g id="calendario">
+		<path class="s1" d="m607.27 200.19v486.68h-488.28l-114.99-123.72v-480.24h484.07z"/>
+		<path class="s2" d="m607.27 200.19v90.78h-603.27v-208.06h484.07z"/>
+		<path class="s3" d="m200.26 24v129.39h-8.04v-129.39z"/>
+		<path class="s3" d="m418.98 24v129.39h-8.05v-129.39z"/>
+		<text id="20
+" style="transform: matrix(7.661,0,0,7.661,125.421,599.466)">
+			<tspan x="0" y="0" class="t4">20
+</tspan>
+		</text>
+	</g>
+</svg>

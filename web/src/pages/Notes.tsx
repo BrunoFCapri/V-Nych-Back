@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../config';
+import { useAPI } from '../utils/useAPI';
 
 interface Note {
   id: string;
@@ -113,11 +113,11 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                 onKeyDown={handleImageKeyDown}
                 className={`block-input type-image ${isSelected ? 'selected' : ''}`}
                 style={{ 
-                    border: isSelected ? '2px solid #38bdf8' : 'none',
+                    border: isSelected ? '2px solid var(--accent)' : 'none',
                     padding: '10px',
                     borderRadius: '4px',
                     outline: 'none',
-                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.1)' : 'transparent'
+                    backgroundColor: isSelected ? 'var(--accent-weak)' : 'transparent'
                 }}
                 onClick={(e) => {
                     e.stopPropagation();
@@ -132,7 +132,7 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                         accept="image/*"
                         onChange={handleImageUpload}
                         className="file-input"
-                        style={{ color: '#94a3b8' }}
+                        style={{ color: 'var(--text-secondary)' }}
                     />
                 )}
             </div>
@@ -183,12 +183,12 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                 onKeyDown={handleNoteKey}
                 className={`block-input type-note ${isSelected ? 'selected' : ''}`}
                 style={{ 
-                    border: isSelected ? '2px solid #38bdf8' : '1px solid #334155',
+                    border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
                     padding: '10px',
                     borderRadius: '4px',
                     outline: 'none',
-                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.1)' : '#1e293b',
-                    color: '#e2e8f0', // Always light text for dark note block
+                    backgroundColor: isSelected ? 'var(--accent-weak)' : 'var(--card-bg)',
+                    color: 'var(--text-primary)', // Always light text for dark note block
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -206,7 +206,7 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                 }}
             >
                 <span style={{ fontSize: '1.2em' }}>📄</span>
-                <span style={{ fontWeight: 500, textDecoration: 'underline', color: '#60a5fa' }}>{displayTitle}</span>
+                <span style={{ fontWeight: 500, textDecoration: 'underline', color: 'var(--accent)' }}>{displayTitle}</span>
             </div>
         );
     }
@@ -221,7 +221,7 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                     marginLeft: '8px', 
                     marginTop: '2px', // Align with text
                     fontSize: '1em', 
-                    color: '#94a3b8',
+                    color: 'var(--text-secondary)',
                     userSelect: 'none'
                 }}>•</span>
             )}
@@ -300,7 +300,7 @@ const SidebarItem = ({ note, selectedId, onSelect, onDelete }: { note: any, sele
                     display: 'flex', 
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    backgroundColor: selectedId === note.id ? '#1e3a8a' : 'transparent',
+                    backgroundColor: selectedId === note.id ? 'var(--accent-weak)' : 'transparent',
                     borderRadius: '4px',
                     position: 'relative',
                 }}
@@ -315,7 +315,7 @@ const SidebarItem = ({ note, selectedId, onSelect, onDelete }: { note: any, sele
                     {hasChildren ? (
                         <span 
                                 onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-                                style={{ marginRight: '5px', fontSize: '0.8em', color: '#64748b', cursor: 'pointer', flexShrink: 0 }}
+                                style={{ marginRight: '5px', fontSize: '0.8em', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}
                         >
                             {expanded ? '▼' : '▶'}
                         </span>
@@ -333,7 +333,7 @@ const SidebarItem = ({ note, selectedId, onSelect, onDelete }: { note: any, sele
                         style={{
                             border: 'none',
                             background: 'none',
-                            color: '#94a3b8',
+                            color: 'var(--text-secondary)',
                             cursor: 'pointer',
                             fontSize: '1em',
                             padding: '0 5px',
@@ -365,13 +365,22 @@ export default function Notes() {
   const [title, setTitle] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState<number>(-1);
   const [selectionAnchor, setSelectionAnchor] = useState<number | null>(null);
-  const { token, logout } = useAuth();
+    const { token } = useAuth();
   const navigate = useNavigate();
+  const { fetchAPI } = useAPI();
   // const editorRef = useRef<HTMLElement>(null); // Not used currently
   const titleInputRef = useRef<HTMLInputElement>(null);
   const shouldFocusTitleRef = useRef(false);
   
   const [isMouseSelecting, setIsMouseSelecting] = useState(false);
+
+    useEffect(() => {
+        document.body.classList.add('notes-page');
+
+        return () => {
+            document.body.classList.remove('notes-page');
+        };
+    }, []);
 
   // History state for Undo/Redo. Limit 50 steps.
   const [history, setHistory] = useState<Block[][]>([[{ id: crypto.randomUUID(), type: 'text', content: '' }]]);
@@ -539,21 +548,13 @@ export default function Notes() {
   // Fetch notes
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/api/notes`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-        if (res.status === 401) {
-            logout();
-            return [];
-        }
-        return res.json();
-    })
+    fetchAPI(`/api/notes`)
+    .then(res => res.json())
     .then(data => {
         if (Array.isArray(data)) setNotes(data);
     })
     .catch(console.error);
-  }, [token]);
+  }, [token, fetchAPI]);
 
   const generateId = () => {
     return crypto.randomUUID();
@@ -564,13 +565,9 @@ export default function Notes() {
     const initialBlocks = [{ id: generateId(), type: 'text', content: "" }];
     const newNote = { title: "Untitled", content: initialBlocks };
     
-    try {
-        const res = await fetch(`${API_URL}/api/notes`, {
+        try {
+                const res = await fetchAPI(`/api/notes`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}` 
-          },
           body: JSON.stringify(newNote)
         });
         
@@ -592,9 +589,8 @@ export default function Notes() {
     if (!window.confirm("Are you sure you want to delete this page and all its subpages?")) return;
 
     try {
-        const res = await fetch(`${API_URL}/api/notes/${noteId}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` }
+        const res = await fetchAPI(`/api/notes/${noteId}`, {
+          method: 'DELETE'
         });
         
         if (res.ok) {
@@ -643,13 +639,9 @@ export default function Notes() {
 
     console.log("createSubNote: Posting new note to API:", newNote);
 
-    try {
-        const res = await fetch(`${API_URL}/api/notes`, {
+        try {
+                const res = await fetchAPI(`/api/notes`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}` 
-          },
           body: JSON.stringify(newNote)
         });
         
@@ -658,9 +650,7 @@ export default function Notes() {
             console.log("createSubNote: Subnote created:", savedNote);
             
             // Refetch all notes to ensure hierarchy is up to date
-            const notesRes = await fetch(`${API_URL}/api/notes`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const notesRes = await fetchAPI(`/api/notes`);
             if (notesRes.ok) {
                 const allNotes = await notesRes.json();
                 console.log("createSubNote: Notes list updated, count:", allNotes.length);
@@ -694,12 +684,9 @@ export default function Notes() {
             setBlocks(blocksForSave);
             setFocusedBlockIndex(blockIndex + 1);
 
-            const patchRes = await fetch(`${API_URL}/api/notes/${selectedNote.id}`, {
+            const patchRes = await fetchAPI(`/api/notes/${selectedNote.id}`, {
                 method: 'PATCH',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}` 
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: blocksForSave })
             });
 
@@ -741,12 +728,9 @@ export default function Notes() {
 
     // Persist to backend
     try {
-        await fetch(`${API_URL}/api/notes/${selectedNote.id}`, {
+        await fetchAPI(`/api/notes/${selectedNote.id}`, {
           method: 'PATCH',
-          headers: { 
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}` 
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: currentTitle, content: blocks })
         });
     } catch (e) {

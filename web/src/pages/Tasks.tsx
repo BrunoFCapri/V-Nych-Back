@@ -1,4 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
+import { folderIcon, homeIcon, starIcon, taskIcon } from '../assets/icons';
 
 interface TaskAttachment {
     id: string;
@@ -76,9 +80,6 @@ function useTaskAttachments(selectedTask: Task | null, token: string) {
 
     return { attachments, setAttachments, uploading, setUploading, fileInputRef, handleFileUpload, handleDeleteAttachment };
 }
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../config';
 
 interface Task {
   id: string;
@@ -147,9 +148,9 @@ const TaskTreeItem = ({
             paddingLeft: `${level * 20 + 12}px`,
             marginBottom: '4px', 
             borderRadius: '6px',
-            border: '1px solid #334155',
+            border: '1px solid var(--border)',
             cursor: 'pointer',
-            backgroundColor: isSelected ? '#334155' : '#1e293b',
+            backgroundColor: isSelected ? 'var(--border)' : 'var(--card-bg)',
             opacity: isDone ? 0.7 : 1,
             boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
             transition: 'all 0.2s',
@@ -164,7 +165,7 @@ const TaskTreeItem = ({
                  top: 0,
                  bottom: 0,
                  width: '1px',
-                 backgroundColor: '#334155'
+                 backgroundColor: 'var(--border)'
              }} />
          )}
 
@@ -176,7 +177,7 @@ const TaskTreeItem = ({
                 justifyContent: 'center', 
                 cursor: 'pointer', 
                 marginRight: '6px',
-                color: '#94a3b8',
+                color: 'var(--text-secondary)',
                 visibility: hasChildren ? 'visible' : 'hidden'
             }}
             onClick={(e) => { e.stopPropagation(); toggleExpand(task.id); }}
@@ -190,20 +191,20 @@ const TaskTreeItem = ({
             checked={isDone}
             onClick={(e) => e.stopPropagation()}
             onChange={() => onUpdate(task.id, { status: isDone ? 'todo' : 'done' })}
-            style={{ marginRight: '12px', width: '16px', height: '16px', cursor: 'pointer', accentColor: '#38bdf8' }}
+            style={{ marginRight: '12px', width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--accent)' }}
         />
         
         {/* Title & Breadcrumb Container */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {breadcrumb && (
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {breadcrumb}
                 </div>
             )}
             
             <div style={{ 
                 textDecoration: isDone ? 'line-through' : 'none',
-                color: isDone ? '#94a3b8' : '#f8fafc',
+                color: isDone ? 'var(--text-secondary)' : 'var(--text-primary)',
                 fontWeight: 500,
                 fontSize: '0.95rem',
                 display: 'flex',
@@ -211,7 +212,7 @@ const TaskTreeItem = ({
             }}>
                 {task.title}
                 {task.due_date && (
-                    <span style={{ fontSize: '0.75rem', color: new Date(task.due_date) < new Date() && !isDone ? '#f87171' : '#94a3b8', marginLeft: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', color: new Date(task.due_date) < new Date() && !isDone ? 'var(--error)' : 'var(--text-secondary)', marginLeft: '8px' }}>
                         📅 {new Date(task.due_date).toLocaleDateString()}
                     </span>
                 )}
@@ -225,7 +226,7 @@ const TaskTreeItem = ({
             }}
             style={{ 
                 background: 'none', border: 'none', cursor: 'pointer', 
-                color: task.is_starred ? '#fbbf24' : '#475569', fontSize: '1.1rem', marginRight: '8px', marginLeft: '8px'
+                color: task.is_starred ? '#fbbf24' : 'var(--border)', fontSize: '1.1rem', marginRight: '8px', marginLeft: '8px'
             }}
         >
             ★
@@ -236,7 +237,7 @@ const TaskTreeItem = ({
                 e.stopPropagation();
                 onDelete(task.id);
             }}
-            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px' }}
+            style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px' }}
         >
             ×
         </button>
@@ -551,24 +552,28 @@ export default function Tasks() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#0f172a' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--bg-color)' }}>
       
       {/* Sidebar - Lists */}
-      <div style={{ width: '250px', backgroundColor: '#1e293b', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', borderRight: '1px solid #334155' }}>
-        <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#f1f5f9' }}>Task Lists</h2>
+      <div style={{ width: '250px', backgroundColor: 'var(--card-bg)', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src={taskIcon} alt="Task lists" style={{ width: '20px', height: '20px', borderRadius: '4px' }} />
+            Task Lists
+        </h2>
         
         <div 
             onClick={() => { setSelectedListId(null); setShowStarredOnly(false); }}
             style={{ 
                 padding: '10px', 
                 cursor: 'pointer', 
-                backgroundColor: !selectedListId && !showStarredOnly ? '#334155' : 'transparent', 
+                backgroundColor: !selectedListId && !showStarredOnly ? 'var(--border)' : 'transparent', 
                 borderRadius: '6px',
                 marginBottom: '5px',
-                color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '8px'
+                color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px'
             }}
         >
-            📑 All Tasks
+            <img src={folderIcon} alt="All tasks" style={{ width: '18px', height: '18px', borderRadius: '4px' }} />
+            All Tasks
         </div>
         
         <div 
@@ -576,16 +581,17 @@ export default function Tasks() {
             style={{ 
                 padding: '10px', 
                 cursor: 'pointer', 
-                backgroundColor: showStarredOnly ? '#334155' : 'transparent', 
+                backgroundColor: showStarredOnly ? 'var(--border)' : 'transparent', 
                 borderRadius: '6px',
                 marginBottom: '15px',
-                color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '8px'
+                color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px'
             }}
         >
-            ⭐ Starred
+            <img src={starIcon} alt="Starred" style={{ width: '18px', height: '18px', borderRadius: '4px' }} />
+            Starred
         </div>
 
-        <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '10px', fontWeight: 'bold' }}>Your Lists</div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px', fontWeight: 'bold' }}>Your Lists</div>
         
         <div style={{ flex: 1, overflowY: 'auto' }}>
             {lists.map(list => (
@@ -595,14 +601,19 @@ export default function Tasks() {
                     style={{ 
                         padding: '10px', 
                         cursor: 'pointer', 
-                        backgroundColor: selectedListId === list.id ? '#334155' : 'transparent', 
+                        backgroundColor: selectedListId === list.id ? 'var(--border)' : 'transparent', 
                         borderRadius: '6px',
                         marginBottom: '4px',
                         display: 'flex', alignItems: 'center', gap: '8px',
-                        color: selectedListId === list.id ? 'white' : '#cbd5e1'
+                        color: selectedListId === list.id ? 'white' : 'var(--text-secondary)'
                     }}
                 >
-                    <span>{list.icon || '📂'}</span> {list.title}
+                    {list.icon ? (
+                        <span>{list.icon}</span>
+                    ) : (
+                        <img src={folderIcon} alt="List" style={{ width: '16px', height: '16px', borderRadius: '3px' }} />
+                    )}
+                    {list.title}
                 </div>
             ))}
         </div>
@@ -616,8 +627,8 @@ export default function Tasks() {
                     flex: 1, 
                     padding: '8px', 
                     borderRadius: '4px', 
-                    border: '1px solid #475569', 
-                    backgroundColor: '#0f172a', 
+                    border: '1px solid var(--border)', 
+                    backgroundColor: 'var(--bg-color)', 
                     color: 'white',
                     outline: 'none'
                 }}
@@ -625,25 +636,26 @@ export default function Tasks() {
             <button 
                 type="submit"
                 disabled={!newListTitle.trim()}
-                style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '0 10px', cursor: 'pointer' }}
+                style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none', borderRadius: '4px', padding: '0 10px', cursor: 'pointer' }}
             >
                 +
             </button>
         </form>
 
-        <button onClick={() => navigate('/')} style={{ marginTop: '20px', padding: '10px', backgroundColor: '#334155', color: '#cbd5e1', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+        <button onClick={() => navigate('/')} style={{ marginTop: '20px', padding: '10px', backgroundColor: 'var(--border)', color: 'var(--text-secondary)', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <img src={homeIcon} alt="Dashboard" style={{ width: '18px', height: '18px', borderRadius: '4px' }} />
             Back to Dashboard
         </button>
       </div>
 
       {/* Main Content - Tasks */}
-      <div style={{ flex: 1, padding: '30px', overflowY: 'auto', borderRight: '1px solid #334155', backgroundColor: '#0f172a' }}>
-        <h1 style={{ marginBottom: '20px', color: '#f8fafc' }}>
+      <div style={{ flex: 1, padding: '30px', overflowY: 'auto', borderRight: '1px solid var(--border)', backgroundColor: 'var(--bg-color)' }}>
+        <h1 style={{ marginBottom: '20px', color: 'var(--text-primary)' }}>
             {showStarredOnly ? 'Starred Tasks' : (selectedListId ? lists.find(l => l.id === selectedListId)?.title : 'All Tasks')}
         </h1>
         
-        {loading && <div style={{ color: '#94a3b8', marginBottom: '10px' }}>Loading tasks...</div>}
-        {error && <div style={{ color: '#ef4444', marginBottom: '10px' }}>Error: {error}</div>}
+        {loading && <div style={{ color: 'var(--text-secondary)', marginBottom: '10px' }}>Loading tasks...</div>}
+        {error && <div style={{ color: 'var(--error)', marginBottom: '10px' }}>Error: {error}</div>}
         
         <form onSubmit={(e) => { e.preventDefault(); if(newTaskTitle.trim()) { createNewTask(newTaskTitle.trim()); setNewTaskTitle(''); } }} style={{ marginBottom: '20px' }}>
             <input 
@@ -654,10 +666,10 @@ export default function Tasks() {
                     width: '100%', 
                     padding: '12px', 
                     borderRadius: '6px', 
-                    border: '1px solid #334155', 
+                    border: '1px solid var(--border)', 
                     fontSize: '1rem', 
-                    backgroundColor: '#1e293b', 
-                    color: '#f8fafc',
+                    backgroundColor: 'var(--card-bg)', 
+                    color: 'var(--text-primary)',
                     outline: 'none'
                 }}
             />
@@ -684,7 +696,7 @@ export default function Tasks() {
             {/* Completed Tasks */}
             {visibleRootTasks.some(t => t.status === 'done') && (
                 <div style={{ marginTop: '30px' }}>
-                    <h3 style={{ fontSize: '1rem', color: '#64748b', marginBottom: '10px' }}>Completed</h3>
+                    <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '10px' }}>Completed</h3>
                     {visibleRootTasks.filter(t => t.status === 'done').map(task => (
                         <TaskTreeItem 
                             key={task.id} 
@@ -703,20 +715,20 @@ export default function Tasks() {
                 </div>
             )}
 
-            {visibleRootTasks.length === 0 && !loading && <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontStyle: 'italic' }}>No tasks found.</div>}
+            {visibleRootTasks.length === 0 && !loading && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No tasks found.</div>}
         </div>
       </div>
 
       {/* Right Panel - Details */}
       {selectedTask && (
-        <div style={{ width: '350px', backgroundColor: '#1e293b', padding: '20px', borderLeft: '1px solid #334155', display: 'flex', flexDirection: 'column', color: '#f8fafc' }}>
+        <div style={{ width: '350px', backgroundColor: 'var(--card-bg)', padding: '20px', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h3 style={{ margin: 0, color: '#f8fafc' }}>Task Details</h3>
-                <button onClick={() => setSelectedTask(null)} style={{ border: 'none', background: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Task Details</h3>
+                <button onClick={() => setSelectedTask(null)} style={{ border: 'none', background: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
             </div>
             
             {/* Breadcrumb in details too */}
-            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '10px', fontStyle: 'italic' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '10px', fontStyle: 'italic' }}>
                 {getBreadcrumb(selectedTask)}
             </div>
 
@@ -727,17 +739,17 @@ export default function Tasks() {
                     fontSize: '1.1rem', 
                     fontWeight: 'bold', 
                     border: 'none', 
-                    borderBottom: '1px solid #334155', 
+                    borderBottom: '1px solid var(--border)', 
                     padding: '5px 0', 
                     marginBottom: '15px', 
                     width: '100%', 
                     outline: 'none',
                     backgroundColor: 'transparent',
-                    color: '#f8fafc'
+                    color: 'var(--text-primary)'
                 }}
             />
 
-            <label style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '5px', display: 'block' }}>Due Date</label>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '5px', display: 'block' }}>Due Date</label>
             <input 
                 type="date"
                 value={selectedTask.due_date ? selectedTask.due_date.split('T')[0] : ''}
@@ -749,15 +761,15 @@ export default function Tasks() {
                     width: '100%', 
                     padding: '8px', 
                     borderRadius: '4px', 
-                    border: '1px solid #334155', 
+                    border: '1px solid var(--border)', 
                     marginBottom: '20px', 
-                    color: '#f8fafc',
-                    backgroundColor: '#0f172a',
+                    color: 'var(--text-primary)',
+                    backgroundColor: 'var(--bg-color)',
                     colorScheme: 'dark'
                 }}
             />
 
-            <label style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '5px' }}>Description / Notes</label>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>Description / Notes</label>
             <textarea 
                 value={selectedTask.description || ''}
                 onChange={(e) => updateTask(selectedTask.id, { description: e.target.value })}
@@ -767,20 +779,20 @@ export default function Tasks() {
                     minHeight: '100px', 
                     padding: '10px', 
                     borderRadius: '4px', 
-                    border: '1px solid #334155', 
+                    border: '1px solid var(--border)', 
                     marginBottom: '20px', 
                     resize: 'vertical',
-                    backgroundColor: '#0f172a',
-                    color: '#f8fafc'
+                    backgroundColor: 'var(--bg-color)',
+                    color: 'var(--text-primary)'
                 }}
             />
 
-            <label style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '5px' }}>Subtasks</label>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>Subtasks</label>
             <div style={{ marginBottom: '20px' }}>
                 {(tasksByParent.get(selectedTask.id) || []).map(st => (
                     <div 
                         key={st.id} 
-                        style={{ display: 'flex', alignItems: 'center', padding: '6px', borderBottom: '1px solid #334155', fontSize: '0.9rem' }}
+                        style={{ display: 'flex', alignItems: 'center', padding: '6px', borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}
                     >
                          <input
                             type="checkbox"
@@ -790,7 +802,7 @@ export default function Tasks() {
                         />
                         <span style={{ 
                             textDecoration: st.status === 'done' ? 'line-through' : 'none', 
-                            color: st.status === 'done' ? '#64748b' : '#cbd5e1',
+                            color: st.status === 'done' ? 'var(--text-muted)' : 'var(--text-secondary)',
                             flex: 1 
                         }}>{st.title}</span>
                     </div>
@@ -813,39 +825,39 @@ export default function Tasks() {
                             flex: 1, 
                             padding: '5px', 
                             borderRadius: '4px', 
-                            border: '1px solid #334155',
-                            backgroundColor: '#0f172a',
-                            color: '#f8fafc'
+                            border: '1px solid var(--border)',
+                            backgroundColor: 'var(--bg-color)',
+                            color: 'var(--text-primary)'
                         }} 
                     />
-                    <button type="submit" style={{ marginLeft: '5px', padding: '5px 10px', backgroundColor: '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', color: 'white' }}>+</button>
+                    <button type="submit" style={{ marginLeft: '5px', padding: '5px 10px', backgroundColor: 'var(--border)', border: 'none', borderRadius: '4px', cursor: 'pointer', color: 'white' }}>+</button>
                 </form>
             </div>
 
 
                         {/* Attachments Section */}
                         <div style={{ marginBottom: '20px' }}>
-                            <label style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '5px', display: 'block' }}>Attachments</label>
+                            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '5px', display: 'block' }}>Attachments</label>
                             <form onSubmit={handleFileUpload} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
-                                <input ref={fileInputRef} type="file" style={{ color: '#f8fafc', background: 'transparent' }} />
-                                <button type="submit" disabled={uploading} style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 14px', cursor: 'pointer' }}>{uploading ? 'Uploading...' : 'Upload'}</button>
+                                <input ref={fileInputRef} type="file" style={{ color: 'var(--text-primary)', background: 'transparent' }} />
+                                <button type="submit" disabled={uploading} style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 14px', cursor: 'pointer' }}>{uploading ? 'Uploading...' : 'Upload'}</button>
                             </form>
                             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                                {attachments.length === 0 && <li style={{ color: '#64748b', fontSize: '0.9rem' }}>No files uploaded.</li>}
+                                {attachments.length === 0 && <li style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No files uploaded.</li>}
                                 {attachments.map(att => (
                                     <li key={att.id} style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <button
                                             type="button"
                                             onClick={() => handleDownloadAttachment(att)}
-                                            style={{ color: '#38bdf8', textDecoration: 'underline', fontSize: '0.97rem', wordBreak: 'break-all', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                            style={{ color: 'var(--accent)', textDecoration: 'underline', fontSize: '0.97rem', wordBreak: 'break-all', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                                         >
                                             {att.filename}
                                         </button>
-                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{att.mime_type || ''}</span>
+                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{att.mime_type || ''}</span>
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteAttachment(att.id)}
-                                            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', marginLeft: '8px' }}
+                                            style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', marginLeft: '8px' }}
                                             title="Delete file"
                                         >
                                             🗑️
@@ -855,7 +867,7 @@ export default function Tasks() {
                             </ul>
                         </div>
             
-            <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
                 Created: {new Date(selectedTask.created_at || '').toLocaleDateString()}
             </div>
         </div>
