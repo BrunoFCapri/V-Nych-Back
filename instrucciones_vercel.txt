@@ -1,0 +1,100 @@
+
+# Instrucciones para el proyecto en Vercel (Frontend Compartido) usando WireGuard
+
+
+## 1. Consumo de la API pública (con WireGuard)
+- El backend y el frontend estarán conectados por una red privada virtual (VPN) usando WireGuard.
+- El backend tendrá una IP privada de la VPN, por ejemplo: `10.0.0.2`.
+- El frontend (en Vercel o donde lo necesites) debe estar conectado a la misma VPN para acceder al backend.
+- Endpoint para consultar disponibilidad:
+  - `GET http://10.0.0.2:3000/api/public/calendar?token=TOKEN&until=YYYY-MM-DDTHH:mm:ssZ`
+  - Ejemplo: `http://10.0.0.2:3000/api/public/calendar?token=abc123&until=2026-05-01T23:59:59Z`
+- El backend responde con un array de rangos ocupados:
+  ```json
+  [
+    ["2026-04-16T10:00:00Z", "2026-04-16T11:00:00Z"],
+    ...
+  ]
+  ```
+- Solo muestra bloques ocupados/libres, nunca detalles.
+
+## 2. Flujo sugerido en el frontend
+1. El usuario accede mediante un link único con el token y la fecha límite.
+2. El frontend consulta la API pública y muestra la agenda (solo disponibilidad).
+3. El usuario puede seleccionar un horario libre y proponer una cita.
+4. Envía la propuesta a otro endpoint (definir en backend, ejemplo: `/api/public/propose`), incluyendo el token.
+5. Muestra confirmación o error.
+
+## 3. Seguridad
+- El token es la única llave de acceso, no se requiere login.
+- El frontend debe validar que la fecha actual no exceda la fecha límite (`until`).
+- Si la API responde 401/403, mostrar mensaje de acceso expirado o inválido.
+
+
+## 4. Ejemplo de uso en React
+```js
+fetch('http://10.0.0.2:3000/api/public/calendar?token=abc123&until=2026-05-01T23:59:59Z')
+  .then(r => r.json())
+  .then(data => {/* mostrar disponibilidad */})
+```
+
+
+
+## 5. Propuestas de eventos
+- Implementar un formulario para proponer una cita.
+- Endpoint sugerido:
+  - `POST http://10.0.0.2:3000/api/public/propose`
+  - Body:
+    ```json
+    {
+      "token": "abc123",
+      "start_time": "2026-04-20T15:00:00Z",
+      "end_time": "2026-04-20T16:00:00Z",
+      "nombre": "Nombre del invitado",
+      "email": "correo@ejemplo.com"
+    }
+    ```
+- El backend guarda la propuesta como pendiente y te notifica (por email, panel, etc.).
+- El invitado recibe confirmación de envío.
+- Cuando aceptes/rechaces, el backend puede notificar al invitado (opcional).
+
+### Ejemplo en React
+```js
+fetch('http://10.0.0.2:3000/api/public/propose', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    token: 'abc123',
+    start_time: '2026-04-20T15:00:00Z',
+    end_time: '2026-04-20T16:00:00Z',
+    nombre: 'Invitado',
+    email: 'correo@ejemplo.com'
+  })
+})
+  .then(r => r.json())
+  .then(data => {/* mostrar confirmación */})
+```
+
+## 6. UI sugerida
+- Mostrar calendario con bloques ocupados/libres.
+- Formulario para proponer cita.
+- Mensaje de éxito/error.
+
+
+## 7. Consideraciones
+- El backend nunca debe exponer detalles de eventos.
+- El link puede tener expiración (el backend lo valida).
+- El frontend solo necesita el token y la fecha límite del link.
+- El backend solo será accesible desde la red privada de WireGuard.
+- Si necesitas exponer el backend a internet, deberás configurar reglas adicionales o usar un proxy seguro.
+
+---
+
+## 8. Notas sobre WireGuard
+- Debes instalar y configurar WireGuard en el servidor donde corre el backend y en los servicios/servidores que necesiten acceso (por ejemplo, un servidor intermedio o una función serverless que sí pueda conectarse a la VPN).
+- Vercel no soporta VPN directamente, pero puedes usar un backend intermedio (bridge) conectado a WireGuard que reciba las peticiones de Vercel y las reenvíe por la VPN.
+- Si desarrollas localmente, solo necesitas que tu máquina esté conectada a la VPN para acceder al backend.
+
+---
+
+Cualquier duda, consulta el backend para detalles de endpoints o flujos.

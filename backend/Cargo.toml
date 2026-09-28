@@ -19,3 +19,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 argon2 = { version = "0.5.3", features = ["std"] }
 jsonwebtoken = "9.3.0"
 rand_core = "0.10.0"
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+mockall = "0.15.0"
+tower = { version = "0.5", features = ["util"] }

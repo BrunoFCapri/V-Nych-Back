@@ -3,12 +3,12 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: chaja_db
+    container_name: vnych_db
     restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: chaja_mesh
+      POSTGRES_DB: v_nych
     ports:
       - "5432:5432"
     healthcheck:
@@ -21,7 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: chaja_redis
+    container_name: vnych_redis
     restart: always
     ports:
       - "6379:6379"
@@ -29,14 +29,14 @@ services:
       - ./redis-data:/data
 
   backend:
-    container_name: ChajaMesh
+    container_name: vnych_backend
     build: 
       context: ./backend
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgres://postgres:password@db:5432/chaja_mesh
+      DATABASE_URL: postgres://postgres:password@db:5432/v_nych
       REDIS_URL: redis://redis:6379/
       RUST_LOG: debug
     depends_on:

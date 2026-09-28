@@ -32,6 +32,13 @@ pub struct Event {
 }
 
 
+// Defaults applied when the payload omits the field
+pub const DEFAULT_ORIGINAL_TZ: &str = "UTC";
+pub const DEFAULT_STATUS: &str = "confirmed";
+pub const DEFAULT_TRANSPARENCY: &str = "opaque";
+pub const DEFAULT_VISIBILITY: &str = "private";
+pub const DEFAULT_COLOR: &str = "#3b82f6";
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreateEventPayload {
     pub title: String,
@@ -47,6 +54,28 @@ pub struct CreateEventPayload {
     pub parent_event_id: Option<Uuid>,
     pub recurrence_id: Option<DateTime<Utc>>,
     pub color: Option<String>,
+}
+
+impl CreateEventPayload {
+    pub fn original_tz_or_default(&self) -> String {
+        self.original_tz.clone().unwrap_or_else(|| DEFAULT_ORIGINAL_TZ.to_string())
+    }
+
+    pub fn status_or_default(&self) -> String {
+        self.status.clone().unwrap_or_else(|| DEFAULT_STATUS.to_string())
+    }
+
+    pub fn transparency_or_default(&self) -> String {
+        self.transparency.clone().unwrap_or_else(|| DEFAULT_TRANSPARENCY.to_string())
+    }
+
+    pub fn visibility_or_default(&self) -> String {
+        self.visibility.clone().unwrap_or_else(|| DEFAULT_VISIBILITY.to_string())
+    }
+
+    pub fn color_or_default(&self) -> String {
+        self.color.clone().unwrap_or_else(|| DEFAULT_COLOR.to_string())
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -100,15 +129,15 @@ pub async fn create_event(
     .bind(&payload.description)
     .bind(payload.start_time)
     .bind(payload.end_time)
-    .bind(payload.original_tz.unwrap_or_else(|| "UTC".to_string()))
-    .bind(payload.status.unwrap_or_else(|| "confirmed".to_string()))
-    .bind(payload.transparency.unwrap_or_else(|| "opaque".to_string()))
-    .bind(payload.visibility.unwrap_or_else(|| "private".to_string()))
+    .bind(payload.original_tz_or_default())
+    .bind(payload.status_or_default())
+    .bind(payload.transparency_or_default())
+    .bind(payload.visibility_or_default())
     .bind(&payload.rrule)
     .bind(&payload.exdates)
     .bind(payload.parent_event_id)
     .bind(payload.recurrence_id)
-    .bind(payload.color.unwrap_or_else(|| "#3b82f6".to_string()))
+    .bind(payload.color_or_default())
     .fetch_one(&state.db)
     .await
     .map_err(|e| {
@@ -262,6 +291,6 @@ pub async fn delete_event(
     if result.rows_affected() == 0 {
         return Err(StatusCode::NOT_FOUND);
     }
-    
+
     Ok(StatusCode::NO_CONTENT)
 }

@@ -1,0 +1,13 @@
+name: Validar Runner
+on: [push]
+
+jobs:
+  ping:
+    runs-on: docker
+    container:
+      image: catthehacker/ubuntu:act-latest
+    steps:
+      - name: Chequear entornos
+        run: |
+          echo "Arquitectura:" && uname -m
+          echo "Docker dentro del runner:" && docker --version
